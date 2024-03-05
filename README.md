@@ -4,6 +4,8 @@
 
 ### <p align="center">[ArXiv](https://arxiv.org/abs/2401.08739) | [Project Page](https://ego-gen.github.io/)
 
+### <p align="center"> CVPR 2024
+
 <p align="center">
   <img width="100%" src="assets/teaser.jpg"/>
 </p><p align="center">
@@ -15,12 +17,10 @@
 
 ## Citation
 ```
-@misc{li2024egogen,
-      title={EgoGen: An Egocentric Synthetic Data Generator}, 
-      author={Gen Li and Kaifeng Zhao and Siwei Zhang and Xiaozhong Lyu and Mihai Dusmanu and Yan Zhang and Marc Pollefeys and Siyu Tang},
-      year={2024},
-      eprint={2401.08739},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@article{li2024egogen,
+  title={{EgoGen}: An {E}gocentric {S}ynthetic {D}ata {G}enerator},
+  author={Li, Gen and Zhao, Kaifeng and Zhang, Siwei and Lyu, Xiaozhong and Dusmanu, Mihai and Zhang, Yan and Pollefeys, Marc and Tang, Siyu},
+  journal={arXiv preprint arXiv:2401.08739},
+  year={2024}
 }
 ```
