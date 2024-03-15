@@ -17,10 +17,10 @@
 
 ## Citation
 ```
-@article{li2024egogen,
-  title={{EgoGen}: An {E}gocentric {S}ynthetic {D}ata {G}enerator},
-  author={Li, Gen and Zhao, Kaifeng and Zhang, Siwei and Lyu, Xiaozhong and Dusmanu, Mihai and Zhang, Yan and Pollefeys, Marc and Tang, Siyu},
-  journal={arXiv preprint arXiv:2401.08739},
-  year={2024}
+@inproceedings{li2024egogen, 
+ title={{EgoGen: An Egocentric Synthetic Data Generator}}, 
+ author={Li, Gen and Zhao, Kaifeng and Zhang, Siwei and Lyu, Xiaozhong and Dusmanu, Mihai and Zhang, Yan and Pollefeys, Marc and Tang, Siyu}, 
+ booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 
+ year={2024} 
 }
 ```
