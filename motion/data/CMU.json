@@ -1,0 +1,52 @@
+{
+  "gender": "unknown",
+  "markersets": [
+    {
+      "distance_from_skin": 0.0095,
+      "indices": {
+        "C7": 3832,
+        "CLAV": 5533,
+        "LANK": 5882,
+        "LBWT": 5697,
+        "LELB": 4302,
+        "LFIN": 4788,
+        "LFRM": 4198,
+        "LFWT": 3486,
+        "LHEE": 8846,
+        "LKNE": 3682,
+        "LMT5": 5901,
+        "LSHN": 3712,
+        "LSHO": 4481,
+        "LTHI": 4088,
+        "LTOE": 5787,
+        "LUPA": 4030,
+        "RANK": 8576,
+        "RBAK": 6127,
+        "RBWT": 8391,
+        "RELB": 7040,
+        "RFIN": 7524,
+        "RFRM": 6942,
+        "RFWT": 6248,
+        "RHEE": 8634,
+        "RKNE": 6443,
+        "RMT5": 8595,
+        "RSHN": 6473,
+        "RSHO": 6627,
+        "RTHI": 6832,
+        "RTOE": 8481,
+        "RUPA": 6777,
+        "STRN": 5531,
+        "T10": 5623,
+        "LFHD": 707,
+        "LBHD": 2026,
+        "RFHD": 2198,
+        "RBHD": 3066,
+        "RIWR": 7462,
+        "ROWR": 7458,
+        "LIWR": 4726,
+        "LOWR": 4722
+      },
+      "type": "body"
+    }
+  ]
+}
