@@ -23,9 +23,10 @@
 We will release all code before the CVPR 2024 conference.
 
 - [x] Motion model eval code in Replica room0
+- [x] Motion model training code (two-stage RL in crowded scenes)
 - [ ] Motion model eval code for dynamic obstacle avoidance and crowd motion synthesis
+- [ ] Motion model training code (models for dynamic evaluations)
 - [ ] Motion primitive C-VAE training code
-- [ ] Motion model training code
 - [ ] Egocentric human mesh recovery code (RGB/depth images as input)
 - [ ] EgoBody synthetic data (RGB/depth)
 - [ ] EgoBody synthetic data generation script (incl. automated clothing simulation)
@@ -54,28 +55,32 @@ The code is tested on Ubuntu 22.04, CUDA 11.7.
 - [Pretrained marker regressor and predictor model (C-VAE)](https://polybox.ethz.ch/index.php/s/Ss4YwjR5s6EfuX6)
 - [Pretrained policy model for motion synthesis in Replica room0](https://polybox.ethz.ch/index.php/s/aA9A5D8DLVli2a2)
 
-Organize as following:
+Organize them as following:
 ```
-├── data/
-|   ├── smplx/
-|   │   └── models/
-|   |       |── smplx/
-|   |       |   |── SMPLX_MALE.npz
-|   |       |   |── ...
-|   |       |
-|   |       |── vposer_v1_0/
-|   |       |   |── snapshots/TR00_E096.pt
-|   |       |   |── ...
-|   ├── room0_sdf.pkl
-|   ├── checkpoint_87.pth
-|   └── ...
-├── results/    # C-VAE pretrained models
+EgoGen
+  ├── motion
+        ├── crowd_ppo/
+        ├── data/
+        |   ├── smplx/
+        |   │   └── models/
+        |   |       |── smplx/
+        |   |       |   |── SMPLX_MALE.npz
+        |   |       |   |── ...
+        |   |       |
+        |   |       |── vposer_v1_0/
+        |   |       |   |── snapshots/TR00_E096.pt
+        |   |       |   |── ...
+        |   ├── room0_sdf.pkl
+        |   ├── checkpoint_87.pth
+        |   └── ...
+        ├── results/    # C-VAE pretrained models
 ```
 
 ## Inference
 
 ### Ego-perception driven motion synthesis in crowded scenes
 ```
+cd motion
 python -W ignore crowd_ppo/main_ppo.py --resume-path=data/checkpoint_87.pth --watch --deterministic-eval
 ```
 This will generate a virtual human walking in the replica room0 with sampled `(start, target)` location. Generated motion sequences are located in `log/eval_results/`
@@ -85,6 +90,25 @@ This will generate a virtual human walking in the replica room0 with sampled `(s
 ```
 python vis.py --path motion_seq_path
 ```
+
+## Training
+
+### Ego-perception driven motion synthesis in crowded scenes
+
+#### Phase 1: RL pretraining with soft penetration termination
+```
+cd motion
+python -W ignore crowd_ppo/main_ppo.py
+```
+We selected `checkpoint_113.pth` as the best pretrained model. 
+
+Principles to choose the model: (1) the reward is high and the kld loss is small; (2) choose models with smaller epoch numbers if their rewards are similar. These principles will make sure the learned action space does not deviate too much from the prior, and as a result producing more natural motions.
+
+#### Phase 2: RL finetuning with strict penetration termination
+```
+python -W ignore crowd_ppo/main_ppo.py --resume-path=/path/to/pretrained/checkpoint_113.pth --logdir=log/finetune/ --finetune
+```
+This should produce `log/finetune/checkpoint_87.pth` that you downloaded before. The best model should have (1) high reward; (2) small kld loss.
 
 ## Stay Tuned ...
 
