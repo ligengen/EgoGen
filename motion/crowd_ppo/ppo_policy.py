@@ -227,7 +227,7 @@ class GAMMAPPOPolicy(PPOPolicy):
                 # KLD like in Motion Primitive VAE
                 # TODO: new kld loss
                 # kld_loss = 0.5 * torch.mean(-1 - minibatch.z_logvar + minibatch.z_mu.pow(2) + minibatch.z_var)  
-                kld_loss = 0.5 * torch.mean(minibatch.z_mu.pow(2))  
+                kld_loss = 0.5 * torch.mean(minibatch.z_mu.pow(2))  # do not optimize, just an indicator for model selection
                 # use robust kld
                 if torch.isnan(kld_loss).any() or torch.isinf(kld_loss).any():
                     pdb.set_trace()
@@ -237,7 +237,7 @@ class GAMMAPPOPolicy(PPOPolicy):
                 # calculate regularization and overall loss
                 ent_loss = dist.entropy().mean()
                 loss = clip_loss + self._weight_vf * vf_loss \
-                    - self._weight_ent * ent_loss + kld_loss * self._weight_kld
+                    - self._weight_ent * ent_loss # + kld_loss * self._weight_kld
                 self.optim.zero_grad()
                 loss.backward()
                 if self._grad_norm:  # clip large gradient

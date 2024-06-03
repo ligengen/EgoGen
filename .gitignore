@@ -7,7 +7,7 @@ motion/data/smplx/
 motion/data/room0_sdf.pkl
 results/
 log/
-room0/
+motion/data/checkpoint_best.pth
 
 # C extensions
 *.so

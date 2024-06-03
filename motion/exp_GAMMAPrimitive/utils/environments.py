@@ -800,90 +800,158 @@ class BatchGeneratorSceneTrain(BatchGeneratorReachingTarget):
         xbo_dict['betas'] = xbo_dict['betas'][0]
         return xbo_dict
 
-class CrowdMotion(BatchGeneratorSceneTrain):
-    def __init__(self, dataset_path, body_model_path='/home/yzhang/body_models/VPoser', body_repr='ssm2_67', scene_list=None, scene_dir=None, scene_type='random',):
-        super().__init__(dataset_path, body_model_path, body_repr, scene_list, scene_dir, scene_type)
+class CrowdMotion(BatchGeneratorReachingTarget):
+    def __init__(self, dataset_path, body_model_path='/home/yzhang/body_models/VPoser', body_repr='ssm2_67', motion_seed_list=None, scene_list=None, scene_dir=None, scene_type='random',):
+        super().__init__(dataset_path, body_model_path, body_repr)
+        self.bm_male = smplx.create(body_model_path, model_type='smplx',
+                                    gender='male', ext='npz',
+                                    num_pca_comps=12,
+                                    create_global_orient=True,
+                                    create_body_pose=True,
+                                    create_betas=True,
+                                    create_left_hand_pose=True,
+                                    create_right_hand_pose=True,
+                                    create_expression=True,
+                                    create_jaw_pose=True,
+                                    create_leye_pose=True,
+                                    create_reye_pose=True,
+                                    create_transl=True,
+                                    batch_size=2
+                                    ).eval().cuda()
+        self.bm_female = smplx.create(body_model_path, model_type='smplx',
+                                    gender='female', ext='npz',
+                                    num_pca_comps=12,
+                                    create_global_orient=True,
+                                    create_body_pose=True,
+                                    create_betas=True,
+                                    create_left_hand_pose=True,
+                                    create_right_hand_pose=True,
+                                    create_expression=True,
+                                    create_jaw_pose=True,
+                                    create_leye_pose=True,
+                                    create_reye_pose=True,
+                                    create_transl=True,
+                                    batch_size=2
+                                    ).eval().cuda()
 
-    def next_body(self, sigma=10, visualize=False, use_zero_pose=True,
-                    scene_idx=None, start_target=None, random_rotation_range=1.0,
-                    clip_far=False,
-                    res=32, extent=1.6):
-        if scene_idx is None:
-            scene_idx = torch.randint(len(self.scene_list), size=(1,)).item()
-        scene_name = self.scene_list[scene_idx]
-        mesh_path = self.scene_dir / self.scene_type / (scene_name + '.ply')
-        navmesh_path = self.scene_dir / self.scene_type / (scene_name + '_navmesh_tight.ply')
-        samples_path = self.scene_dir / self.scene_type / (scene_name + '_samples.pkl')
-        navmesh = trimesh.load(navmesh_path, force='mesh')
-        navmesh.vertices[:, 2] = 0
-        navmesh.visual.vertex_colors = np.array([0, 0, 200, 50])
-        with open(samples_path, 'rb') as f:
-            sample_pairs = pickle.load(f)
-            num_samples = len(sample_pairs)
-            if num_samples == 0:
-                print('error: zero samples, precompute')
-            start, target = sample_pairs[np.random.randint(low=0, high=num_samples)]
-
+    def gen_init_body(self, start, target, fixed_seed, id=None):
         wpath = torch.cuda.FloatTensor(np.zeros((3,3)))
         wpath[0] = torch.cuda.FloatTensor(start)
         wpath[1] = torch.cuda.FloatTensor(target)
         wpath[2] = torch.cuda.FloatTensor(target)
+        
+        """generate init body"""
+        if not fixed_seed:
+            motion_seed_path = random.choice(self.motion_seed_list)
+            motion_data = np.load(motion_seed_path)
+            start_frame = torch.randint(0, len(motion_data['poses']) - 1, (1,)).item()
+        else:
+            motion_seed_path = "data/locomotion/subseq_00343.npz"
+            motion_data = np.load(motion_seed_path)
+            # start_frame = 5
+            # random initial pose
+            start_frame = torch.randint(0, len(motion_data['poses']) - 1, (1,)).item()
+
+        motion_seed_dict = {}
+        motion_seed_dict['betas'] = torch.cuda.FloatTensor(motion_data['betas']).reshape((1, 10)).repeat(2, 1)
+
+        # random betas
+        # motion_seed_dict['betas'] = torch.cuda.FloatTensor(1,10).normal_().repeat(2, 1) / 2.
+        motion_seed_dict['body_pose'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, 3:66])
+        motion_seed_dict['global_orient'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, :3])
+        motion_seed_dict['transl'] = torch.cuda.FloatTensor(motion_data['trans'][start_frame:start_frame + 2])
+
+        # gender = random.choice(['male', 'female'])
+        # if id == 0 or id == 3:
+        #     gender = 'female'
+        # else:
+        #     gender = 'male'
+        gender = 'male'
+        bm = self.bm_male if gender == 'male' else self.bm_female
+
+        # rotate the body to face the target
+        joints = bm(**motion_seed_dict).joints
+        x_axis = joints[:, 2, :] - joints[:, 1, :]
+        x_axis[:, -1] = 0
+        x_axis = x_axis / torch.norm(x_axis, dim=-1, keepdim=True).clip(min=1e-12)
+        z_axis = torch.cuda.FloatTensor([[0, 0, 1]], device=x_axis.device).repeat(x_axis.shape[0], 1)
+        y_axis = torch.cross(z_axis, x_axis)
+        b_ori = y_axis[0]
+        b_ori /= torch.linalg.norm(b_ori)
+        target_ori = wpath[1] - wpath[0]
+        target_ori /= torch.linalg.norm(target_ori)
+        v = torch.cross(b_ori, target_ori)
+        c = torch.dot(b_ori, target_ori)
+        s = torch.linalg.norm(v)
+        kmat = torch.cuda.FloatTensor([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        target_rot = torch.eye(3).cuda() + kmat + (kmat @ kmat) * ((1 - c) / (s ** 2))
+        target_rot = target_rot.unsqueeze(0).repeat(2, 1, 1)
+        pelvis_zero = bm(betas=motion_seed_dict['betas']).joints[:1, 0, :]  # [1, 3]
+        original_rot = pytorch3d.transforms.axis_angle_to_matrix(motion_seed_dict['global_orient'])
+        new_rot = torch.einsum('bij,bjk->bik', target_rot, original_rot)
+        new_transl = torch.einsum('bij,bj->bi', target_rot, pelvis_zero + motion_seed_dict['transl']) - pelvis_zero
+        motion_seed_dict['global_orient'] = pytorch3d.transforms.matrix_to_axis_angle(new_rot)
+        motion_seed_dict['transl'] = new_transl
+
+        # slightly rotate around z
+        theta = torch.cuda.FloatTensor(1).uniform_(-1, 1) * torch.pi * 2 * 0.2
+        random_rot = pytorch3d.transforms.euler_angles_to_matrix(torch.cuda.FloatTensor([0, 0, theta]),
+                                                                 convention="XYZ").reshape(1, 3, 3)
+        original_rot = pytorch3d.transforms.axis_angle_to_matrix(motion_seed_dict['global_orient'])
+        new_rot = torch.einsum('bij,bjk->bik', random_rot, original_rot)
+        new_transl = torch.einsum('bij,bj->bi', random_rot, pelvis_zero + motion_seed_dict['transl']) - pelvis_zero
+        motion_seed_dict['global_orient'] = pytorch3d.transforms.matrix_to_axis_angle(new_rot)
+        motion_seed_dict['transl'] = new_transl
+
+        # translate to make the init body pelvis above origin, feet on floor
+        output = bm(**motion_seed_dict)
+        transl = torch.cuda.FloatTensor([output.joints[0, 0, 0], output.joints[0, 0, 1], output.joints[0, :, 2].amin()])
+        motion_seed_dict['transl'] -= transl
+        motion_seed_dict['transl'] += wpath[:1]
+        output = bm(**motion_seed_dict)
+        wpath[0] = output.joints[0,0,:]
+        wpath[1,2] = wpath[0,2]
+
         """generate a body"""
         xbo_dict = {}
-        gender = 'male'
-        xbo_dict['betas'] = torch.cuda.FloatTensor(1,10).zero_()
-        xbo_dict['body_pose'] = self.vposer.decode(torch.cuda.FloatTensor(1,32).zero_() if use_zero_pose else torch.cuda.FloatTensor(1,32).normal_(), # prone to self-interpenetration
-                                       output_type='aa').view(1, -1)
-        xbo_dict['global_orient'] = self.get_bodyori_from_wpath(wpath[0], wpath[-1])[None,...]
-
-        """snap to the ground"""
-        bm = self.bm_male if gender == 'male' else self.bm_female
-        xbo_dict['transl'] = wpath[:1] - bm(**xbo_dict).joints[0, 0, :]  # [1,3]
-        xbo_dict = self.snap_to_ground(xbo_dict, bm) # snap foot to ground, recenter pelvis right above origin, set starting point at pelvis
-        wpath[0] = bm(**xbo_dict).joints[0, 0, :]
-        wpath[1, 2] = wpath[0, 2]
-
-        """specify output"""
-        xbo_dict['gender']=gender
-        xbo_dict['wpath']=wpath[:2]
-        if torch.isnan(xbo_dict['wpath']).any() or torch.isinf(xbo_dict['wpath']).any():
-            print('error:wpath invalid', xbo_dict['wpath'])
+        # random gender
+        xbo_dict['gender'] = gender # random.choice(["male", "female"])
+        xbo_dict['motion_seed'] = motion_seed_dict
+        xbo_dict['betas'] = motion_seed_dict['betas'][:1, :]
+        xbo_dict['wpath'] = wpath[:2]
+        xbo_dict['scene_path'] = "data/floor.ply"
+        # xbo_dict['scene_path'] = os.path.join(self.scene_dir, "mesh_floor_zup.ply")
+        xbo_dict['navmesh'] = None # self.navmesh
+        xbo_dict['navmesh_path'] = None # self.scene_dir / self.scene_type / (self.scene_list[0] + '_navmesh_tight.ply')
         xbo_dict['floor_height'] = 0
-        self.index_rec += 1
         xbo_dict['betas'] = xbo_dict['betas'][0]
-        xbo_dict['navmesh'] = navmesh
-        xbo_dict['scene_path'] = mesh_path
-        xbo_dict['navmesh_path'] = navmesh_path
-        
-        xbo_dict2 = {}
-        wpath2 = torch.cuda.FloatTensor(np.zeros((3,3)))
-        wpath2[0] = torch.cuda.FloatTensor(target)
-        wpath2[1] = torch.cuda.FloatTensor(start)
-        wpath2[2] = torch.cuda.FloatTensor(start)
-        xbo_dict2['betas'] = torch.cuda.FloatTensor(1,10).zero_()
-        xbo_dict2['body_pose'] = self.vposer.decode(torch.cuda.FloatTensor(1,32).zero_() if use_zero_pose else torch.cuda.FloatTensor(1,32).normal_(), # prone to self-interpenetration
-                                       output_type='aa').view(1, -1)
-        xbo_dict2['global_orient'] = self.get_bodyori_from_wpath(wpath2[0], wpath2[-1])[None,...]
+        return xbo_dict
 
-        '''snap to the ground'''
-        xbo_dict2['transl'] = wpath2[:1] - bm(**xbo_dict2).joints[0, 0, :]  # [1,3]
-        xbo_dict2 = self.snap_to_ground(xbo_dict2, bm) # snap foot to ground, recenter pelvis right above origin, set starting point at pelvis
-        wpath2[0] = bm(**xbo_dict2).joints[0, 0, :]
-        wpath2[1, 2] = wpath2[0, 2]
 
-        '''specify output'''
-        xbo_dict2['gender']=gender
-        xbo_dict2['wpath']=wpath2[:2]
-        if torch.isnan(xbo_dict2['wpath']).any() or torch.isinf(xbo_dict2['wpath']).any():
-            print('error:wpath invalid', xbo_dict2['wpath'])
-        xbo_dict2['floor_height'] = 0
-        self.index_rec += 1
-        xbo_dict2['betas'] = xbo_dict2['betas'][0]
-        xbo_dict2['navmesh'] = navmesh
-        xbo_dict2['scene_path'] = mesh_path
-        xbo_dict2['navmesh_path'] = navmesh_path
+    def next_body(self, start_target=None, fixed_seed=False, num_agents=2):
+        if num_agents == 1:
+            start, target = start_target
+            xbo_dict = self.gen_init_body(start, target, fixed_seed)
+            return xbo_dict
 
-        return xbo_dict, xbo_dict2
+        elif num_agents == 2:
+            start, target = start_target[0]
+            xbo_dict = self.gen_init_body(start, target, fixed_seed)
+            start, target = start_target[1]
+            xbo_dict2 = self.gen_init_body(start, target, fixed_seed)
+            return xbo_dict, xbo_dict2
+
+        elif num_agents == 4:
+            start, target = start_target[0]
+            xbo_dict = self.gen_init_body(start, target, fixed_seed)
+            start, target = start_target[1]
+            xbo_dict2 = self.gen_init_body(start, target, fixed_seed)
+            start, target = start_target[2]
+            xbo_dict3 = self.gen_init_body(start, target, fixed_seed)
+            start, target = start_target[3]
+            xbo_dict4 = self.gen_init_body(start, target, fixed_seed)
+            return xbo_dict, xbo_dict2, xbo_dict3, xbo_dict4
+
 
 class BatchGeneratorSceneRandomTest(BatchGeneratorReachingTarget):
     def __init__(self,

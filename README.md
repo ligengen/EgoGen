@@ -24,7 +24,7 @@ We will release all code before the CVPR 2024 conference.
 
 - [x] Motion model eval code in Replica room0
 - [x] Motion model training code (two-stage RL in crowded scenes)
-- [ ] Motion model eval code for dynamic obstacle avoidance and crowd motion synthesis
+- [x] Motion model eval code for crowd motion synthesis
 - [ ] Motion model training code (models for dynamic evaluations)
 - [ ] Motion primitive C-VAE training code
 - [ ] Egocentric human mesh recovery code (RGB/depth images as input)
@@ -54,6 +54,7 @@ The code is tested on Ubuntu 22.04, CUDA 11.7.
 - [Precomputed sdf for replica room0](https://polybox.ethz.ch/index.php/s/qFxEWnMHXtzMB5N)
 - [Pretrained marker regressor and predictor model (C-VAE)](https://polybox.ethz.ch/index.php/s/Ss4YwjR5s6EfuX6)
 - [Pretrained policy model for motion synthesis in Replica room0](https://polybox.ethz.ch/index.php/s/aA9A5D8DLVli2a2)
+- [Pretrained policy model for motion synthesis in dynamic settings](https://polybox.ethz.ch/index.php/s/us7JcDPqxSVaT7F)
 
 Organize them as following:
 ```
@@ -72,6 +73,7 @@ EgoGen
         |   |       |   |── ...
         |   ├── room0_sdf.pkl
         |   ├── checkpoint_87.pth
+        |   ├── checkpoint_best.pth
         |   └── ...
         ├── results/    # C-VAE pretrained models
 ```
@@ -85,10 +87,24 @@ python -W ignore crowd_ppo/main_ppo.py --resume-path=data/checkpoint_87.pth --wa
 ```
 This will generate a virtual human walking in the replica room0 with sampled `(start, target)` location. Generated motion sequences are located in `log/eval_results/`
 
-### Motion visualization
+####  Motion visualization
 
 ```
 python vis.py --path motion_seq_path
+```
+
+### Ego-perception driven motion synthesis for crowd motion
+The pretrained model is trained in scenes with a single static box obstacle. And it is directly generalizable to dynamic settings. We release the code for four humans switching locations. You can easily modify the code for two/eight humans crowd motion synthesis. 
+```
+cd motion
+python crowd_ppo/main_crowd_eval.py (--deterministic-eval)
+```
+
+`--deterministic-eval` is optional. If you want to synthesize more diverse motions, do not add it. You may also randomly sample initial body pose to further increase diversity. Generated motion sequences are located in `log/eval_results/crowd-4human/*`
+
+#### Motion visualization
+```
+python vis_crowd.py --path 'log/eval_results/crowd-4human/*'
 ```
 
 ## Training
