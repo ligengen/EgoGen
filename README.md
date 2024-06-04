@@ -26,7 +26,7 @@ We will release all code before the CVPR 2024 conference.
 - [x] Motion model training code (two-stage RL in crowded scenes)
 - [x] Motion model eval code for crowd motion synthesis
 - [x] Motion model training code (models for dynamic evaluations)
-- [ ] Motion primitive C-VAE training code
+- [x] Motion primitive C-VAE training code
 - [ ] Egocentric human mesh recovery code (RGB/depth images as input)
 - [ ] EgoBody synthetic data (RGB/depth)
 - [ ] EgoBody synthetic data generation script (incl. automated clothing simulation)
@@ -79,6 +79,7 @@ EgoGen
         |   ├── scenes/
         |   |      ├── random_box_obstacle_new/
         |   |      └── random_box_obstacle_new_names.pkl
+        |   ├── samp/*_stageII.pkl  # original samp dataset
         |   └── ...
         ├── results/    # C-VAE pretrained models
 ```
@@ -114,7 +115,12 @@ python vis_crowd.py --path 'log/eval_results/crowd-4human/*'
 
 ## Data preparation
 
-
+SAMP dataset is processed to motion primitive format with these two commands:
+```
+python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 1
+python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 10
+```
+Processed files will be located at `data/samp/Canonicalized-MP*/`.
 
 ## Training
 

@@ -9,6 +9,7 @@ results/
 log/
 motion/data/checkpoint_best.pth
 motion/data/scenes
+motion/data/samp
 
 # C extensions
 *.so
