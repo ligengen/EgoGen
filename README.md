@@ -25,7 +25,7 @@ We will release all code before the CVPR 2024 conference.
 - [x] Motion model eval code in Replica room0
 - [x] Motion model training code (two-stage RL in crowded scenes)
 - [x] Motion model eval code for crowd motion synthesis
-- [ ] Motion model training code (models for dynamic evaluations)
+- [x] Motion model training code (models for dynamic evaluations)
 - [ ] Motion primitive C-VAE training code
 - [ ] Egocentric human mesh recovery code (RGB/depth images as input)
 - [ ] EgoBody synthetic data (RGB/depth)
@@ -55,6 +55,8 @@ The code is tested on Ubuntu 22.04, CUDA 11.7.
 - [Pretrained marker regressor and predictor model (C-VAE)](https://polybox.ethz.ch/index.php/s/Ss4YwjR5s6EfuX6)
 - [Pretrained policy model for motion synthesis in Replica room0](https://polybox.ethz.ch/index.php/s/aA9A5D8DLVli2a2)
 - [Pretrained policy model for motion synthesis in dynamic settings](https://polybox.ethz.ch/index.php/s/us7JcDPqxSVaT7F)
+- [Static box scenes for policy training](https://polybox.ethz.ch/index.php/s/n8PIyHZVmXFl9Sr)
+- [SAMP Mocap dataset](https://samp.is.tue.mpg.de/)
 
 Organize them as following:
 ```
@@ -74,6 +76,9 @@ EgoGen
         |   ├── room0_sdf.pkl
         |   ├── checkpoint_87.pth
         |   ├── checkpoint_best.pth
+        |   ├── scenes/
+        |   |      ├── random_box_obstacle_new/
+        |   |      └── random_box_obstacle_new_names.pkl
         |   └── ...
         ├── results/    # C-VAE pretrained models
 ```
@@ -107,6 +112,10 @@ python crowd_ppo/main_crowd_eval.py (--deterministic-eval)
 python vis_crowd.py --path 'log/eval_results/crowd-4human/*'
 ```
 
+## Data preparation
+
+
+
 ## Training
 
 ### Ego-perception driven motion synthesis in crowded scenes
@@ -124,7 +133,17 @@ Principles to choose the model: (1) the reward is high and the kld loss is small
 ```
 python -W ignore crowd_ppo/main_ppo.py --resume-path=/path/to/pretrained/checkpoint_113.pth --logdir=log/finetune/ --finetune
 ```
-This should produce `log/finetune/checkpoint_87.pth` that you downloaded before. The best model should have (1) high reward; (2) small kld loss.
+This would produce `log/finetune/checkpoint_87.pth` that you downloaded before. The best model should have (1) high reward; (2) small kld loss.
+
+### Ego-perception driven motion synthesis for crowd motion
+
+Our egocentric perception driven motion primitives exhibit remarkable generalizability. The model is training with static scenes but can be used to synthesize crowd motions. To train such model:
+
+```
+cd motion
+python crowd_ppo/main_ppo_box.py
+```
+This would produce models with similar performance as `checkpoint_best.pth` (its test reward was 10.22), which should be the trained `log/log_box/checkpoint_164.pth`. Using this model, you can synthesize human motions in dynamic settings.
 
 ## Stay Tuned ...
 

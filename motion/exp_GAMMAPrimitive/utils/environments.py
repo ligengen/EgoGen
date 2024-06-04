@@ -59,7 +59,7 @@ class BatchGeneratorScene2frameTrain(BatchGeneratorReachingTarget):
         shapely_path = 'data/replica_room0_shapely.pkl'
         self.shapely_poly = np.load(shapely_path, allow_pickle=True)
         motion_seed_path = "data/locomotion/subseq_00343.npz"
-        self.motion_data = np.load(motion_seed_path)
+        self.motion_data = np.load(motion_seed_path) # fix init motion seed in replica 
 
     # TODO: change to random wpath gen!
     def next_body(self, sigma=10, visualize=False, use_zero_pose=True,
@@ -281,6 +281,298 @@ class BatchGeneratorScene2frameTrain(BatchGeneratorReachingTarget):
             xbo_dict['shapely_poly'] = shapely_poly
         self.index_rec += 1
 
+
+        if visualize:
+            init_body1_mesh = trimesh.Trimesh(
+                vertices=self.bm_2frame(**motion_seed_dict).vertices[0].detach().cpu().numpy(),
+                faces=self.bm_2frame.faces,
+                vertex_colors=np.array([100, 100, 100])
+            )
+            init_body2_mesh = trimesh.Trimesh(
+                vertices=self.bm_2frame(**motion_seed_dict).vertices[1].detach().cpu().numpy(),
+                faces=self.bm_2frame.faces,
+                vertex_colors=np.array([100, 100, 150])
+            )
+            # floor_mesh = trimesh.creation.box(extents=np.array([20, 20, 0.01]),
+            #                                   transform=np.array([[1.0, 0.0, 0.0, 0],
+            #                                                       [0.0, 1.0, 0.0, 0],
+            #                                                       [0.0, 0.0, 1.0, -0.005],
+            #                                                       [0.0, 0.0, 0.0, 1.0],
+            #                                                       ]),
+            #                                   )
+            # floor_mesh.visual.vertex_colors = [0.8, 0.8, 0.8]
+            obj_mesh = trimesh.load(mesh_path, force='mesh')
+            obj_mesh.vertices[:, 2] -= 0.02
+            vis_mesh = [
+                # floor_mesh,
+                        init_body1_mesh,
+                        init_body2_mesh,
+                        obj_mesh, navmesh,
+                        trimesh.creation.axis()
+                        ]
+
+            for point_idx, pelvis in enumerate(wpath[:2, :].reshape(-1, 3)):
+                trans_mat = np.eye(4)
+                trans_mat[:3, 3] = pelvis.detach().cpu().numpy()
+                # sm = trimesh.creation.uv_sphere(radius=0.02)
+                # sm.visual.vertex_colors = [1.0, 0.0, 0.0]
+                # sm.apply_transform(trans_mat)
+                # vis_mesh.append(sm)
+                point_axis = trimesh.creation.axis(transform=trans_mat)
+                vis_mesh.append(point_axis)
+
+            print(xbo_dict['wpath'])
+            import pyrender
+            scene = pyrender.Scene()
+            for mesh in vis_mesh:
+                scene.add_node(pyrender.Node(mesh=pyrender.Mesh.from_trimesh(mesh, smooth=False)))
+            pyrender.Viewer(scene, use_raymond_lighting=True, run_in_thread=False)
+
+
+        # out_dict = self.params2numpy(xbo_dict)
+        # pdb.set_trace()
+        xbo_dict['betas'] = xbo_dict['betas'][0]
+        return xbo_dict
+
+class BatchGeneratorScene2frameTrainBox(BatchGeneratorReachingTarget):
+    def __init__(self,
+                 dataset_path,
+                 body_model_path='/home/yzhang/body_models/VPoser',
+                 body_repr='ssm2_67',  # ['smpl_params', 'cmu_41', 'ssm2_67', 'joints', etc.]
+                 motion_seed_list=None,
+                 scene_list=None,
+                 scene_dir=None,
+                 scene_type='random',
+                 ):
+        super().__init__(dataset_path, body_model_path, body_repr)
+        self.scene_list= scene_list
+        self.scene_dir = Path(scene_dir)
+        self.scene_idx = 0
+        self.scene_type=scene_type
+
+        self.motion_seed_list = motion_seed_list
+        self.bm_2frame = smplx.create(body_model_path, model_type='smplx',
+                                    gender='male', ext='npz',
+                                    num_pca_comps=12,
+                                    create_global_orient=True,
+                                    create_body_pose=True,
+                                    create_betas=True,
+                                    create_left_hand_pose=True,
+                                    create_right_hand_pose=True,
+                                    create_expression=True,
+                                    create_jaw_pose=True,
+                                    create_leye_pose=True,
+                                    create_reye_pose=True,
+                                    create_transl=True,
+                                    batch_size=2
+                                    ).eval().cuda()
+
+    # TODO: change to random wpath gen!
+    def next_body(self, sigma=10, visualize=False, use_zero_pose=True,
+                  scene_idx=None, start_target=None, random_rotation_range=1.0,
+                  clip_far=False, fixed_seed=False,
+                  res=32, extent=1.6):
+        if scene_idx is None:
+            scene_idx = torch.randint(len(self.scene_list), size=(1,)).item()
+        scene_name = self.scene_list[scene_idx]
+        if self.scene_type == 'prox':
+            mesh_path = self.scene_dir / 'PROX' / (scene_name + '_floor.ply')
+            navmesh_path = self.scene_dir / 'PROX' / (scene_name + '_navmesh.ply')
+        elif self.scene_type == 'room_0':
+            mesh_path = self.scene_dir / 'mesh_floor.ply'
+            navmesh_path = self.scene_dir / 'navmesh_tight.ply'
+            samples_path = 'data/room0_samples.pkl'
+            shapely_path = 'data/replica_room0_shapely.pkl'
+        elif 'random' in self.scene_type:
+            mesh_path = self.scene_dir / self.scene_type / (scene_name + '.ply')
+            navmesh_path = self.scene_dir / self.scene_type / (scene_name + '_navmesh_tight.ply')
+            samples_path = self.scene_dir / self.scene_type / (scene_name + '_samples.pkl')
+            shapely_path = self.scene_dir / self.scene_type / (scene_name + '_shapely.pkl')
+            # navmesh_loose_path = self.scene_dir / self.scene_type / (scene_name + '_navmesh.ply')
+            # navmesh_loose = trimesh.load(navmesh_loose_path, force='mesh')
+        navmesh = trimesh.load(navmesh_path, force='mesh')
+        navmesh.vertices[:, 2] = 0
+        navmesh.visual.vertex_colors = np.array([0, 0, 200, 50])
+        navmesh_torch = pytorch3d.structures.Meshes(
+            verts=[torch.cuda.FloatTensor(navmesh.vertices)],
+            faces=[torch.cuda.LongTensor(navmesh.faces)]
+        )
+        shapely_poly = None
+        if os.path.exists(shapely_path):
+            shapely_poly = np.load(shapely_path, allow_pickle=True)
+
+        # import pyrender
+        # scene = pyrender.Scene()
+        # scene.add(pyrender.Mesh.from_trimesh(obj_mesh, smooth=False))
+        # # scene.add(pyrender.Mesh.from_trimesh(navmesh, smooth=False))
+        # scene.add(pyrender.Mesh.from_trimesh(navmesh_crop, smooth=False))
+        # pyrender.Viewer(scene, use_raymond_lighting=True, run_in_thread=False)
+
+        """randomly specify a 3D path"""
+        wpath = np.zeros((3,3))
+        wpath = torch.cuda.FloatTensor(wpath) #starting point, ending point, another point to initialize the body orientation
+        if start_target is not None:
+            wpath[0] = torch.cuda.FloatTensor(start_target[0])  # starting point
+            wpath[1] = torch.cuda.FloatTensor(start_target[1])  # ending point xy
+        elif self.scene_type == 'prox':
+            start_target = np.zeros((2, 3))  # pairs of start and target positions
+            max_try = 32
+            for try_idx in range(max_try):
+                start_target[0] = trimesh.sample.sample_surface_even(navmesh, 1)[0]
+                if try_idx < max_try - 1:
+                    crop_box = trimesh.creation.box(extents=[sigma, sigma, 2])
+                    crop_box.vertices += start_target[0]
+                    navmesh_crop = navmesh.slice_plane(crop_box.facets_origin, -crop_box.facets_normal)
+                    if len(navmesh_crop.vertices) >= 3:
+                        start_target[1] = trimesh.sample.sample_surface_even(navmesh_crop, 1)[0]
+                        break
+                else:
+                    start_target[1] = trimesh.sample.sample_surface_even(navmesh, 1)[0]
+
+            if np.isnan(start_target).any():
+                print('error in sampling start-target')
+            wpath[0] = torch.cuda.FloatTensor(start_target[0]) #starting point
+            wpath[1] = torch.cuda.FloatTensor(start_target[1])  # ending point xy
+            if torch.isnan(wpath).any() or torch.isinf(wpath).any():
+                print('error:wpath invalid, random sample', wpath)
+        elif 'random' in self.scene_type or self.scene_type == 'room_0':
+            with open(samples_path, 'rb') as f:
+                sample_pairs = pickle.load(f)
+            num_samples = len(sample_pairs)
+            if num_samples == 0:
+                print('error: zero samples, precompute')
+
+            # use path planning to know path len prior to determine the max_depth in RL
+            # (start, target), path_len = sample_pairs[np.random.randint(low=0, high=num_samples)]
+            start, target = sample_pairs[np.random.randint(low=0, high=num_samples)]
+            # random wpath sampling 
+            # start = np.array(trimesh.sample.sample_surface_even(navmesh_loose, 1)[0])
+            # target = np.array(trimesh.sample.sample_surface_even(navmesh_loose, 1)[0])
+
+            if clip_far and np.linalg.norm(target - start) > 1.0:
+                # print('clip far pairs')
+                length = np.linalg.norm(target - start).clip(min=1e-12)
+                vec_dir = (target - start) / length
+                l1 = np.random.uniform(low=0.0, high=length - 0.5)
+                l2 = min(np.random.uniform(0.5, 1.0) + l1, length)
+                target = start + vec_dir * l2
+                start = start + vec_dir * l1
+            wpath[0] = torch.cuda.FloatTensor(start)  # starting point
+            wpath[1] = torch.cuda.FloatTensor(target)  # ending point xy
+            # print("start: ", start)
+            # print("target: ", target)
+            if torch.isnan(wpath).any() or torch.isinf(wpath).any():
+                print('error:wpath invalid, precompute', wpath)
+
+        # wpath[2, :2] = wpath[0, :2] + torch.randn(2).to(device=wpath.device) #point to initialize the body orientation, not returned
+        theta = torch.pi * (2 * torch.cuda.FloatTensor(1).uniform_() - 1) * random_rotation_range
+        random_rotz = pytorch3d.transforms.euler_angles_to_matrix(torch.cuda.FloatTensor([0, 0, theta]).reshape(1, 3),
+                                                                  convention="XYZ")
+        wpath[2] = torch.einsum('ij, j->i', random_rotz[0], wpath[1] - wpath[0]) + wpath[0]  # face the target with [-90, 90] disturbance
+        if torch.norm(wpath[2] - wpath[0], dim=-1) < 1e-12:
+            wpath[2] += 1e-12
+        # hard code
+        # wpath[0] = torch.cuda.FloatTensor([-1, 0, 0])
+        # wpath[1] = torch.cuda.FloatTensor([0.5, 0, 0])
+        # wpath[2] = wpath[1]
+
+        """generate init body"""
+        if not fixed_seed:
+            motion_seed_path = random.choice(self.motion_seed_list)
+            motion_data = np.load(motion_seed_path)
+            start_frame = torch.randint(0, len(motion_data['poses']) - 1, (1,)).item()
+        else:
+            motion_seed_path = "data/locomotion/subseq_00343.npz"
+            motion_data = np.load(motion_seed_path)
+            start_frame = 5
+        motion_seed_dict = {}
+        motion_seed_dict['betas'] = torch.cuda.FloatTensor(motion_data['betas']).reshape((1, 10)).repeat(2, 1)
+        motion_seed_dict['body_pose'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, 3:66])
+        motion_seed_dict['global_orient'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, :3])
+        motion_seed_dict['transl'] = torch.cuda.FloatTensor(motion_data['trans'][start_frame:start_frame + 2])
+
+
+        # randomly rotate around up-vec
+        theta = torch.cuda.FloatTensor(1).uniform_() * torch.pi * 2
+        random_rot = pytorch3d.transforms.euler_angles_to_matrix(torch.cuda.FloatTensor([0, 0, theta]),
+                                                                 convention="XYZ").reshape(1, 3, 3)
+        pelvis_zero = self.bm_2frame(betas=motion_seed_dict['betas']).joints[:1, 0, :]  # [1, 3]
+        original_rot = pytorch3d.transforms.axis_angle_to_matrix(motion_seed_dict['global_orient'])
+        new_rot = torch.einsum('bij,bjk->bik', random_rot, original_rot)
+        new_transl = torch.einsum('bij,bj->bi', random_rot, pelvis_zero + motion_seed_dict['transl']) - pelvis_zero
+        motion_seed_dict['global_orient'] = pytorch3d.transforms.matrix_to_axis_angle(new_rot)
+        motion_seed_dict['transl'] = new_transl
+
+        # rotate the body to face the target
+        joints = self.bm_2frame(**motion_seed_dict).joints
+        x_axis = joints[:, 2, :] - joints[:, 1, :]
+        x_axis[:, -1] = 0
+        x_axis = x_axis / torch.norm(x_axis, dim=-1, keepdim=True).clip(min=1e-12)
+        z_axis = torch.cuda.FloatTensor([[0, 0, 1]], device=x_axis.device).repeat(x_axis.shape[0], 1)
+        y_axis = torch.cross(z_axis, x_axis)
+        b_ori = y_axis[0]
+        b_ori /= torch.linalg.norm(b_ori)    
+        target_ori = wpath[1] - wpath[0]
+        target_ori /= torch.linalg.norm(target_ori)
+        v = torch.cross(b_ori, target_ori)
+        c = torch.dot(b_ori, target_ori)
+        s = torch.linalg.norm(v)
+        kmat = torch.cuda.FloatTensor([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        target_rot = torch.eye(3).cuda() + kmat + (kmat @ kmat) * ((1 - c) / (s ** 2))
+        target_rot = target_rot.unsqueeze(0).repeat(2, 1, 1)
+        pelvis_zero = self.bm_2frame(betas=motion_seed_dict['betas']).joints[:1, 0, :]  # [1, 3]
+        original_rot = pytorch3d.transforms.axis_angle_to_matrix(motion_seed_dict['global_orient'])
+        new_rot = torch.einsum('bij,bjk->bik', target_rot, original_rot)
+        new_transl = torch.einsum('bij,bj->bi', target_rot, pelvis_zero + motion_seed_dict['transl']) - pelvis_zero
+        motion_seed_dict['global_orient'] = pytorch3d.transforms.matrix_to_axis_angle(new_rot)
+        motion_seed_dict['transl'] = new_transl
+
+        # slightly rotate around z
+        theta = torch.cuda.FloatTensor(1).uniform_(-1, 1) * torch.pi * 2 * 0.1
+        random_rot = pytorch3d.transforms.euler_angles_to_matrix(torch.cuda.FloatTensor([0, 0, theta]),
+                                                                 convention="XYZ").reshape(1, 3, 3)
+        original_rot = pytorch3d.transforms.axis_angle_to_matrix(motion_seed_dict['global_orient'])
+        new_rot = torch.einsum('bij,bjk->bik', random_rot, original_rot)
+        new_transl = torch.einsum('bij,bj->bi', random_rot, pelvis_zero + motion_seed_dict['transl']) - pelvis_zero
+        motion_seed_dict['global_orient'] = pytorch3d.transforms.matrix_to_axis_angle(new_rot)
+        motion_seed_dict['transl'] = new_transl
+
+        # translate to make the init body pelvis above origin, feet on floor
+        output = self.bm_2frame(**motion_seed_dict)
+        transl = torch.cuda.FloatTensor([output.joints[0, 0, 0], output.joints[0, 0, 1], output.joints[0, :, 2].amin()])
+        motion_seed_dict['transl'] -= transl
+        motion_seed_dict['transl'] += wpath[:1]
+        output = self.bm_2frame(**motion_seed_dict)
+        wpath[0] = output.joints[0,0,:]
+        wpath[1,2] = wpath[0,2]
+        # print("wpath: ", wpath)
+
+        """generate a body"""
+        xbo_dict = {}
+        xbo_dict['motion_seed'] = motion_seed_dict
+        xbo_dict['betas'] = motion_seed_dict['betas'][:1, :]
+        # gender = random.choice(['male', 'female'])
+        gender = random.choice(['male'])
+        # xbo_dict['betas'] = torch.cuda.FloatTensor(1,10).normal_()
+        # xbo_dict['body_pose'] = self.vposer.decode(torch.cuda.FloatTensor(1,32).zero_() if use_zero_pose else torch.cuda.FloatTensor(1,32).normal_(), # prone to self-interpenetration
+        #                                output_type='aa').view(1, -1)
+        # xbo_dict['global_orient'] = self.get_bodyori_from_wpath(wpath[0], wpath[-1])[None,...]
+
+        """specify output"""
+        xbo_dict['gender']=gender
+        xbo_dict['wpath']=wpath[:2]
+        if torch.isnan(xbo_dict['wpath']).any() or torch.isinf(xbo_dict['wpath']).any():
+            print('error:wpath invalid', xbo_dict['wpath'])
+        xbo_dict['scene_path'] = mesh_path
+        xbo_dict['navmesh'] = navmesh
+        xbo_dict['navmesh_torch'] = navmesh_torch
+        xbo_dict['navmesh_path'] = navmesh_path
+        xbo_dict['floor_height'] = 0
+        # a precomputed path len using path finding to calc the max depth for rl
+        # xbo_dict['path_len'] = path_len
+        if shapely_poly is not None:
+            xbo_dict['shapely_poly'] = shapely_poly
+        self.index_rec += 1
 
         if visualize:
             init_body1_mesh = trimesh.Trimesh(

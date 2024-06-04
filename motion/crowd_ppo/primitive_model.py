@@ -70,10 +70,10 @@ def configure_model(cfg, gpu_index, seed):
 
     return testop
 
-def load_model(crowd=False):
+def load_model(box=False):
     # cfg = OmegaConf.load('crowd_ppo/cfg/MPVAEPolicy_samp_collision.yaml')
     # TODO
-    if crowd:
+    if box:
         cfg = OmegaConf.load('crowd_ppo/cfg_samp20/MPVAEPolicy_samp_collision_2.yaml')
     else:
         cfg = OmegaConf.load('crowd_ppo/cfg_samp20/MPVAEPolicy_samp_collision.yaml')

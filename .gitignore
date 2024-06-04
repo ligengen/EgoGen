@@ -8,6 +8,7 @@ motion/data/room0_sdf.pkl
 results/
 log/
 motion/data/checkpoint_best.pth
+motion/data/scenes
 
 # C extensions
 *.so
