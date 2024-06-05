@@ -106,7 +106,7 @@ cd motion
 python crowd_ppo/main_crowd_eval.py (--deterministic-eval)
 ```
 
-`--deterministic-eval` is optional. If you want to synthesize more diverse motions, do not add it. You may also randomly sample initial body pose to further increase diversity. Generated motion sequences are located in `log/eval_results/crowd-4human/*`
+`--deterministic-eval` is optional. If you want to synthesize more diverse motions, do not add it. You may also randomly sample initial motion seed to further increase diversity. Generated motion sequences are located in `log/eval_results/crowd-4human/*`
 
 #### Motion visualization
 ```
@@ -119,8 +119,9 @@ SAMP dataset is processed to motion primitive format with these two commands:
 ```
 python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 1
 python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 10
+cp -r data/samp/Canonicalized-MP/data/locomotion data/
 ```
-Processed files will be located at `data/samp/Canonicalized-MP*/`.
+Processed files will be located at `data/samp/Canonicalized-MP*/`. And copy locomotion data for initial motion seed sampling in policy training.
 
 ## Training
 
@@ -150,6 +151,25 @@ cd motion
 python crowd_ppo/main_ppo_box.py
 ```
 This would produce models with similar performance as `checkpoint_best.pth` (its test reward was 10.22), which should be the trained `log/log_box/checkpoint_164.pth`. Using this model, you can synthesize human motions in dynamic settings.
+
+### Motion primitive C-VAE
+
+Our action space is the latent space (128-D Gaussian) of this C-VAE. 
+
+Make sure you did "Data preparation" section.
+The body marker predictor (history markers + action -> future markers) can be trained as:
+```
+python exp_GAMMAPrimitive/train_GAMMAPredictor.py --cfg MPVAE_samp20_2frame
+
+python exp_GAMMAPrimitive/train_GAMMAPredictor.py --cfg MPVAE_samp20_2frame_rollout --resume_training 1
+
+# The above command will raise FileExistsError. Copy the last ckpt from MPVAE_samp20_2frame to MPVAE_samp20_2frame_rollout as epoch 0:
+cp results/exp_GAMMAPrimitive/MPVAE_samp20_2frame/checkpoints/epoch-300.ckp results/exp_GAMMAPrimitive/MPVAE_samp20_2frame_rollout/checkpoints/epoch-000.ckp
+
+# And run it again:
+python exp_GAMMAPrimitive/train_GAMMAPredictor.py --cfg MPVAE_samp20_2frame_rollout --resume_training 1
+```
+For body marker regressor (markers -> body mesh), we use the pretrained model from [GAMMA](https://github.com/yz-cnsdqz/GAMMA-release).
 
 ## Stay Tuned ...
 
