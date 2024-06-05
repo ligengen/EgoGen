@@ -84,6 +84,16 @@ EgoGen
         ├── results/    # C-VAE pretrained models
 ```
 
+## Data preparation
+
+SAMP dataset is processed to motion primitive format with these two commands:
+```
+python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 1
+python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 10
+cp -r data/samp/Canonicalized-MP/data/locomotion data/
+```
+Processed files will be located at `data/samp/Canonicalized-MP*/`. And copy locomotion data for initial motion seed sampling in policy training.
+
 ## Inference
 
 ### Ego-perception driven motion synthesis in crowded scenes
@@ -112,16 +122,6 @@ python crowd_ppo/main_crowd_eval.py (--deterministic-eval)
 ```
 python vis_crowd.py --path 'log/eval_results/crowd-4human/*'
 ```
-
-## Data preparation
-
-SAMP dataset is processed to motion primitive format with these two commands:
-```
-python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 1
-python exp_GAMMAPrimitive/utils/utils_canonicalize_samp.py 10
-cp -r data/samp/Canonicalized-MP/data/locomotion data/
-```
-Processed files will be located at `data/samp/Canonicalized-MP*/`. And copy locomotion data for initial motion seed sampling in policy training.
 
 ## Training
 
@@ -169,7 +169,16 @@ cp results/exp_GAMMAPrimitive/MPVAE_samp20_2frame/checkpoints/epoch-300.ckp resu
 # And run it again:
 python exp_GAMMAPrimitive/train_GAMMAPredictor.py --cfg MPVAE_samp20_2frame_rollout --resume_training 1
 ```
+The final trained model `results/exp_GAMMAPrimitive/MPVAE_samp20_2frame_rollout/checkpoints/epoch-400.ckp` is the pretrained `results/crowd_ppo/MPVAE_samp20_2frame_rollout/checkpoints/epoch-400.ckp`.
+
 For body marker regressor (markers -> body mesh), we use the pretrained model from [GAMMA](https://github.com/yz-cnsdqz/GAMMA-release).
+
+## Automated clothing simulation & rendering
+
+Refer to [EgoBody synthetic data generation script](./experiments/README.md). We use Pyrender in this script for faster rendering speed, which may reduce photorealism. If you require higher quality please check EgoGen rendering module.
+
+## EgoGen rendering module
+
 
 ## Stay Tuned ...
 

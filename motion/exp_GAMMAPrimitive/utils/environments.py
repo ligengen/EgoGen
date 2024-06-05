@@ -627,113 +627,16 @@ class BatchGeneratorScene2frameTrainBox(BatchGeneratorReachingTarget):
         return xbo_dict
 
 
-class Egobody(BatchGeneratorReachingTarget):
-    def __init__(self, scene_dir=None, body_model_path="/home/yzhang/body_models/VPoser"):
-        super().__init__("", body_model_path, "ssm2_67")
-        self.scene_dir = Path(scene_dir)
-        self.navmesh_loose = trimesh.load(os.path.join(self.scene_dir, "navmesh_tight.ply"), force='mesh')
-        self.navmesh_looser = trimesh.load(os.path.join(self.scene_dir, "navmesh_looser.ply"), force='mesh')
-        walkable_region = []
-        verts = self.navmesh_loose.vertices[:,:2]
-        for face in self.navmesh_loose.faces:
-            walkable_region.append(Polygon([verts[face[0]], verts[face[1]], verts[face[2]]]))
-        self.walkable_region = union_all(walkable_region)
-        # only walk on the biggest area 
-        if type(self.walkable_region)==shapely.geometry.multipolygon.MultiPolygon:
-            area = [x.area for x in self.walkable_region.geoms]
-            idx = area.index(max(area))
-            self.walkable_region = self.walkable_region.geoms[idx]
-    
-    def next_body(self, sigma=10, visualize=False, use_zero_pose=True,
-                    scene_idx=None, start_target=None, random_rotation_range=1.0,
-                    clip_far=False,res=32, extent=1.6):
-        while True:
-            start = np.array(trimesh.sample.sample_surface_even(self.navmesh_looser, 1)[0]) 
-            target = np.array(trimesh.sample.sample_surface_even(self.navmesh_looser, 1)[0])
-            if self.walkable_region.contains(Point(start[0][:2])) and \
-               np.linalg.norm(target - start) >= 2 and \
-               np.linalg.norm(target - start) <= 5 and \
-               self.walkable_region.contains(Point(target[0][:2])):
-                break
-        wpath = torch.cuda.FloatTensor(np.zeros((3,3)))
-        wpath[0] = torch.cuda.FloatTensor(start)
-        wpath[1] = torch.cuda.FloatTensor(target)
-        wpath[2] = torch.cuda.FloatTensor(target)
-        """generate a body"""
-        xbo_dict = {}
-        # gender = random.choice(['male', 'female'])
-        gender = 'male'
-        xbo_dict['betas'] = torch.cuda.FloatTensor(1,10).zero_()
-        xbo_dict['body_pose'] = self.vposer.decode(torch.cuda.FloatTensor(1,32).zero_() if use_zero_pose else torch.cuda.FloatTensor(1,32).normal_(), # prone to self-interpenetration
-                                       output_type='aa').view(1, -1)
-        xbo_dict['global_orient'] = self.get_bodyori_from_wpath(wpath[0], wpath[-1])[None,...]
-
-        """snap to the ground"""
-        bm = self.bm_male if gender == 'male' else self.bm_female
-        xbo_dict['transl'] = wpath[:1] - bm(**xbo_dict).joints[0, 0, :]  # [1,3]
-        xbo_dict = self.snap_to_ground(xbo_dict, bm) # snap foot to ground, recenter pelvis right above origin, set starting point at pelvis
-        wpath[0] = bm(**xbo_dict).joints[0, 0, :]
-        wpath[1, 2] = wpath[0, 2]
-
-        """specify output"""
-        xbo_dict['gender']=gender
-        xbo_dict['wpath']=wpath[:2]
-        if torch.isnan(xbo_dict['wpath']).any() or torch.isinf(xbo_dict['wpath']).any():
-            print('error:wpath invalid', xbo_dict['wpath'])
-        xbo_dict['floor_height'] = 0
-        self.index_rec += 1
-        xbo_dict['betas'] = xbo_dict['betas'][0]
-        xbo_dict['navmesh'] = self.navmesh_loose
-        xbo_dict['scene_path'] = os.path.join(self.scene_dir, 'mesh_floor_zup.ply')
-        xbo_dict['navmesh_path'] = os.path.join(self.scene_dir, 'navmesh_tight.ply')
-        xbo_dict['valid_region'] = self.walkable_region
-
-        """generate a body"""
-        """
-        xbo_dict2 = {}
-        wpath2 = torch.cuda.FloatTensor(np.zeros((3,3)))
-        wpath2[0] = torch.cuda.FloatTensor(target)
-        wpath2[1] = torch.cuda.FloatTensor(start)
-        wpath2[2] = torch.cuda.FloatTensor(start)
-        xbo_dict2['betas'] = torch.cuda.FloatTensor(1,10).normal_()
-        # xbo_dict2['betas'] = torch.cuda.FloatTensor(1,10).zero_()
-        xbo_dict2['body_pose'] = self.vposer.decode(torch.cuda.FloatTensor(1,32).zero_() if use_zero_pose else torch.cuda.FloatTensor(1,32).normal_(), # prone to self-interpenetration
-                                       output_type='aa').view(1, -1)
-        xbo_dict2['global_orient'] = self.get_bodyori_from_wpath(wpath2[0], wpath2[-1])[None,...]
-
-        '''snap to the ground'''
-        xbo_dict2['transl'] = wpath2[:1] - bm(**xbo_dict2).joints[0, 0, :]  # [1,3]
-        xbo_dict2 = self.snap_to_ground(xbo_dict2, bm) # snap foot to ground, recenter pelvis right above origin, set starting point at pelvis
-        wpath2[0] = bm(**xbo_dict2).joints[0, 0, :]
-        wpath2[1, 2] = wpath2[0, 2]
-
-        '''specify output'''
-        xbo_dict2['gender']=gender
-        xbo_dict2['wpath']=wpath2[:2]
-        if torch.isnan(xbo_dict2['wpath']).any() or torch.isinf(xbo_dict2['wpath']).any():
-            print('error:wpath invalid', xbo_dict2['wpath'])
-        xbo_dict2['floor_height'] = 0
-        self.index_rec += 1
-        xbo_dict2['betas'] = xbo_dict2['betas'][0]
-        xbo_dict2['navmesh'] = self.navmesh_loose
-        xbo_dict2['scene_path'] = os.path.join(self.scene_dir, 'mesh_floor_zup.ply')
-        xbo_dict2['navmesh_path'] = os.path.join(self.scene_dir, 'navmesh_looser.ply')
-        xbo_dict2['valid_region'] = self.walkable_region
-        return xbo_dict, xbo_dict2
-        """
-        return xbo_dict
-
-
 class Egobody(BatchGeneratorScene2frameTrain):
     def __init__(self, dataset_path, body_model_path='/home/yzhang/body_models/VPoser', body_repr='ssm2_67', motion_seed_list=None, scene_list=None, scene_dir=None, scene_type='random'):
-        super().__init__(dataset_path, body_model_path, body_repr, motion_seed_list, scene_list, scene_dir, scene_type)
+        super().__init__(dataset_path, body_model_path, body_repr, motion_seed_list, scene_list, scene_dir, scene_type) 
         self.navmesh = trimesh.load(os.path.join(self.scene_dir, "navmesh_tight.ply"), force='mesh')
         walkable_region = []
         verts = self.navmesh.vertices[:,:2]
         for face in self.navmesh.faces:
             walkable_region.append(Polygon([verts[face[0]], verts[face[1]], verts[face[2]]]))
         self.walkable_region = union_all(walkable_region)
-        # only walk on the biggest area
+        # only walk on the biggest area 
         if type(self.walkable_region) == shapely.geometry.multipolygon.MultiPolygon:
             area = [x.area for x in self.walkable_region.geoms]
             idx = area.index(max(area))
@@ -769,9 +672,10 @@ class Egobody(BatchGeneratorScene2frameTrain):
                                     create_transl=True,
                                     batch_size=2
                                     ).eval().cuda()
-
-        self.motion_data = np.load("data/locomotion/subseq_00343.npz")
         
+        self.motion_seed_list = motion_seed_list
+        # self.motion_data = np.load("data/locomotion/subseq_00343.npz")
+
     def gen_init_body(self, start, target, gender):
         wpath = np.zeros((3,3))
         wpath = torch.cuda.FloatTensor(wpath)
@@ -779,12 +683,18 @@ class Egobody(BatchGeneratorScene2frameTrain):
         wpath[1] = torch.cuda.FloatTensor(target)
         wpath[2] = torch.cuda.FloatTensor(target)
 
+        # start_frame = torch.randint(0, len(motion_data['poses']) - 1, (1,)).item()
         # start_frame = 5
-        motion_data = self.motion_data
+        # motion_data = self.motion_data
+
+        # random sample initial body pose to increase diversity
+        motion_seed_path = random.choice(self.motion_seed_list)
+        motion_data = np.load(motion_seed_path)
         start_frame = torch.randint(0, len(motion_data['poses']) - 1, (1,)).item()
         motion_seed_dict = {}
         # motion_seed_dict['betas'] = torch.cuda.FloatTensor(motion_data['betas']).reshape((1, 10)).repeat(2, 1)
-        motion_seed_dict['betas'] = torch.cuda.FloatTensor(1,10).normal_(std=0.1).repeat(2, 1)
+        # random sample body shape to increase diversity
+        motion_seed_dict['betas'] = torch.cuda.FloatTensor(1,10).normal_().repeat(2, 1)
         motion_seed_dict['body_pose'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, 3:66])
         motion_seed_dict['global_orient'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, :3])
         motion_seed_dict['transl'] = torch.cuda.FloatTensor(motion_data['trans'][start_frame:start_frame + 2])
@@ -821,6 +731,7 @@ class Egobody(BatchGeneratorScene2frameTrain):
         new_transl = torch.einsum('bij,bj->bi', target_rot, pelvis_zero + motion_seed_dict['transl']) - pelvis_zero
         motion_seed_dict['global_orient'] = pytorch3d.transforms.matrix_to_axis_angle(new_rot)
         motion_seed_dict['transl'] = new_transl
+
         # slightly rotate around z
         theta = torch.cuda.FloatTensor(1).uniform_(-1, 1) * torch.pi * 2 * 0.1
         random_rot = pytorch3d.transforms.euler_angles_to_matrix(torch.cuda.FloatTensor([0, 0, theta]),
@@ -864,11 +775,12 @@ class Egobody(BatchGeneratorScene2frameTrain):
                 target = trimesh.sample.sample_surface_even(self.navmesh, 1)[0]
                 if self.walkable_region.contains(Point(target[0][:2]).buffer(0.3)):
                     break
-            if np.linalg.norm(target - start) >= 2 and np.linalg.norm(target - start) <= 5:
+            if np.linalg.norm(target - start) >= 2 and np.linalg.norm(target - start) <= 4.5:
                 break
         gender = random.choice(['male', 'female'])
         xbo_dict = self.gen_init_body(start, target, gender)
-        return xbo_dict
+        xbo_dict2 = self.gen_init_body(target, start, gender)
+        return xbo_dict, xbo_dict2
 
 
 class BatchGeneratorSceneTrain(BatchGeneratorReachingTarget):

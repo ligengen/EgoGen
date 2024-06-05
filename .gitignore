@@ -10,6 +10,10 @@ log/
 motion/data/checkpoint_best.pth
 motion/data/scenes
 motion/data/samp
+gen_egobody/
+experiments/exp_data/
+experiments/tmp/
+experiments/egobody_tmp_res
 
 # C extensions
 *.so
