@@ -208,10 +208,11 @@ class CrowdEnv(gym.Env):
             # filter out invalid data
             pred_joints_w = torch.einsum('bij,btpj->btpi', self.R0, pred_joints) + self.T0[:, None, :, :]
             pred_pelvis_loc_w = pred_joints_w[:, :, 0].detach().cpu().numpy()[0]
-            for tmp_t in range(pred_pelvis_loc_w.shape[0]): 
-                if not self.scene_poly.contains(Point(pred_pelvis_loc_w[tmp_t][:2])):
-                    print("invalid pelvis location")
-                    exit(-1)
+            if self.steps < 6:
+                for tmp_t in range(pred_pelvis_loc_w.shape[0]): 
+                    if not self.scene_poly.contains(Point(pred_pelvis_loc_w[tmp_t][:2])):
+                        print("invalid pelvis location")
+                        exit(-1)
 
             # floor penetration reward
             pred_marker_w = torch.einsum('bij,btpj->btpi', self.R0, pred_marker_b)\
@@ -225,7 +226,7 @@ class CrowdEnv(gym.Env):
             latent_dim = vp_embedding.shape[-1]
             vp_norm = torch.norm(vp_embedding.reshape(nb, nt, -1), dim=-1).mean(dim=1)
             # terminate the episode if generated poses are unrealistic. thres to be tuned
-            unrealistic_pose = bool((vp_norm > 13)[0])
+            unrealistic_pose = bool((vp_norm > 14)[0])
             # change r_vp to r_pene like reward 
             r_vp = torch.tensor(0.) if unrealistic_pose else torch.tensor(0.05)
             if unrealistic_pose:
@@ -374,7 +375,7 @@ class CrowdEnv(gym.Env):
             self.egosensing = self._calc_egosensing(pred_joints_all_w[0])
             
             # set terminated signal to end episode to avoid undefined states
-            terminated = bool(r_goal > 0 or self.steps == self.max_depth)
+            terminated = bool(self.steps == self.max_depth)
             truncated = False 
 
             if self.save_rollout:

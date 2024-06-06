@@ -14,6 +14,8 @@ gen_egobody/
 experiments/exp_data/
 experiments/tmp/
 experiments/egobody_tmp_res
+experiments/HOOD/hood_data/*
+experiments/pose_seq_tmp.pkl
 
 # C extensions
 *.so

@@ -29,7 +29,7 @@ We will release all code before the CVPR 2024 conference.
 - [x] Motion primitive C-VAE training code
 - [ ] Egocentric human mesh recovery code (RGB/depth images as input)
 - [ ] EgoBody synthetic data (RGB/depth)
-- [ ] EgoBody synthetic data generation script (incl. automated clothing simulation)
+- [x] EgoBody synthetic data generation script (incl. automated clothing simulation)
 - [ ] EgoGen rendering pipeline code
 
 

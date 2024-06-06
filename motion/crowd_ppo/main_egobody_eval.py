@@ -227,7 +227,7 @@ if __name__ == "__main__":
                                    scene_dir=os.path.join('exp_data/', args.scene_name), body_model_path=bm_path)
     
     # to generate more diverse data, initial body pose and shape are randomly sampled,
-    # which might be an issue to decrease motion quality,
+    # which might be an issue and decrease motion quality,
     # because our model was only trained on zero shape motion data
     body_scene_data, body_scene_data2 = scene_sampler.next_body()
 

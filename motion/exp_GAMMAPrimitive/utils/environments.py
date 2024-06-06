@@ -693,8 +693,8 @@ class Egobody(BatchGeneratorScene2frameTrain):
         start_frame = torch.randint(0, len(motion_data['poses']) - 1, (1,)).item()
         motion_seed_dict = {}
         # motion_seed_dict['betas'] = torch.cuda.FloatTensor(motion_data['betas']).reshape((1, 10)).repeat(2, 1)
-        # random sample body shape to increase diversity
-        motion_seed_dict['betas'] = torch.cuda.FloatTensor(1,10).normal_().repeat(2, 1)
+        # force random sample body shape to increase diversity, (not capatible with samp data)
+        motion_seed_dict['betas'] = torch.cuda.FloatTensor(1,10).normal_(std=0.3).repeat(2, 1)
         motion_seed_dict['body_pose'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, 3:66])
         motion_seed_dict['global_orient'] = torch.cuda.FloatTensor(motion_data['poses'][start_frame:start_frame + 2, :3])
         motion_seed_dict['transl'] = torch.cuda.FloatTensor(motion_data['trans'][start_frame:start_frame + 2])
@@ -733,7 +733,7 @@ class Egobody(BatchGeneratorScene2frameTrain):
         motion_seed_dict['transl'] = new_transl
 
         # slightly rotate around z
-        theta = torch.cuda.FloatTensor(1).uniform_(-1, 1) * torch.pi * 2 * 0.1
+        theta = torch.cuda.FloatTensor(1).uniform_(-1, 1) * torch.pi * 2 * 0.2
         random_rot = pytorch3d.transforms.euler_angles_to_matrix(torch.cuda.FloatTensor([0, 0, theta]),
                                                                  convention="XYZ").reshape(1, 3, 3)
         original_rot = pytorch3d.transforms.axis_angle_to_matrix(motion_seed_dict['global_orient'])
@@ -775,7 +775,7 @@ class Egobody(BatchGeneratorScene2frameTrain):
                 target = trimesh.sample.sample_surface_even(self.navmesh, 1)[0]
                 if self.walkable_region.contains(Point(target[0][:2]).buffer(0.3)):
                     break
-            if np.linalg.norm(target - start) >= 2 and np.linalg.norm(target - start) <= 4.5:
+            if np.linalg.norm(target - start) >= 1.5 and np.linalg.norm(target - start) <= 5:
                 break
         gender = random.choice(['male', 'female'])
         xbo_dict = self.gen_init_body(start, target, gender)
