@@ -186,6 +186,8 @@ Please download the blender file [here](https://polybox.ethz.ch/index.php/s/DHES
 * `vid.sh`: convert images to videos.
 * Blender dependencies: [smpl-x blender addon](https://smpl-x.is.tue.mpg.de/) and [vision blender](https://github.com/Cartucho/vision_blender).
 
+Tested on Blender 3.4.1 Linux x64.
+
 ## License
 
 * Third-party software and datasets employs their respective license. Here are some examples:
