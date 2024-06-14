@@ -27,7 +27,7 @@ We will release all code before the CVPR 2024 conference.
 - [x] Motion model eval code for crowd motion synthesis
 - [x] Motion model training code (models for dynamic evaluations)
 - [x] Motion primitive C-VAE training code
-- [ ] Egocentric human mesh recovery code (RGB/depth images as input)
+- [x] Egocentric human mesh recovery code (RGB/depth images as input)
 - [ ] EgoBody synthetic data (RGB/depth)
 - [x] EgoBody synthetic data generation script (incl. automated clothing simulation)
 - [x] EgoGen rendering pipeline code
