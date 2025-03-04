@@ -94,6 +94,8 @@ cp -r data/samp/Canonicalized-MP/data/locomotion data/
 ```
 Processed files will be located at `data/samp/Canonicalized-MP*/`. And copy locomotion data for initial motion seed sampling in policy training.
 
+To calculate the walkable region for other scene meshes not included in this repo, you will need to generate the navmesh for them. Refer to this [script](https://github.com/zkf1997/DIMOS/blob/6c4ba22ef78c9bf2fcc9006dac318a968b811b35/test_navmesh.py).
+
 ## Inference
 
 ### Ego-perception driven motion synthesis in crowded scenes
