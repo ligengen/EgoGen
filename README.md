@@ -201,10 +201,12 @@ Tested on Blender 3.4.1 Linux x64.
 
 ## Citation
 ```
-@inproceedings{li2024egogen, 
- title={{EgoGen: An Egocentric Synthetic Data Generator}}, 
- author={Li, Gen and Zhao, Kaifeng and Zhang, Siwei and Lyu, Xiaozhong and Dusmanu, Mihai and Zhang, Yan and Pollefeys, Marc and Tang, Siyu}, 
- booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 
- year={2024} 
+@InProceedings{Li_2024_CVPR,
+    author    = {Li, Gen and Zhao, Kaifeng and Zhang, Siwei and Lyu, Xiaozhong and Dusmanu, Mihai and Zhang, Yan and Pollefeys, Marc and Tang, Siyu},
+    title     = {EgoGen: An Egocentric Synthetic Data Generator},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2024},
+    pages     = {14497-14509}
 }
 ```
