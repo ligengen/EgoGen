@@ -1,11 +1,3 @@
-"""
-Script used for evaluating the 3D pose errors of ProHMR (mode + minimum).
-
-Example usage:
-python eval_regression.py --checkpoint=/path/to/checkpoint --dataset=3DPW-TEST
-
-Running the above will compute the Reconstruction Error for the mode as well as the minimum error for the test set of 3DPW.
-"""
 import os
 
 import torch
