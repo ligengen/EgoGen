@@ -94,11 +94,10 @@ def get_right_full_img_pth(imgname_in_npz, img_dir):
 def preprocess(split, egobody_release_path=None):
 
     prefix = ""
-    # prefix = "/mnt/atlas_root"
 
     smpl_path = prefix + egobody_release_path +"smpl_spin_npz/"
     smplx_path = prefix + egobody_release_path + "smplx_spin_npz/"
-    save_path = "../data/smplx_spin_npz_new/"
+    save_path = "../data/smplx_spin_npz/"
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -108,7 +107,6 @@ def preprocess(split, egobody_release_path=None):
     save_name = 'egocapture_%s_smplx.npz'
 
     device = torch.device('cuda')
-    # device = torch.device('cpu')
 
     #read npz file
     smpl_file = np.load(os.path.join(smpl_path, smpl_file_name % split))

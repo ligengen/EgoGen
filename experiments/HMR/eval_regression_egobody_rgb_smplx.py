@@ -1,11 +1,3 @@
-"""
-Script used for evaluating the 3D pose errors of ProHMR (mode + minimum).
-
-Example usage:
-python eval_regression.py --checkpoint=/path/to/checkpoint --dataset=3DPW-TEST
-
-Running the above will compute the Reconstruction Error for the mode as well as the minimum error for the test set of 3DPW.
-"""
 import torch
 import argparse
 from tqdm import tqdm
@@ -29,13 +21,11 @@ from prohmr.utils.renderer import *
 from prohmr.datasets.image_dataset_rgb_egobody_smplx import ImageDatasetEgoBodyRgbSmplx
 from prohmr.utils.konia_transform import rotation_matrix_to_angle_axis
 
-# python eval_regression_egobody_rgb_smplx.py --with_focal_length True --with_bbox_info True --with_cam_center True --batch_size 1 --vis_freq 1
-# python eval_regression_egobody_rgb_smplx.py --checkpoint ./data/checkpoint/rgb/best_model.pt --dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release/
 
 parser = argparse.ArgumentParser(description='Evaluate trained models')
 parser.add_argument('--checkpoint', type=str, default='runs_egogen_rgb/32188/best_model.pt')  # runs_try/90505/best_model.pt data/checkpoint.pt
 parser.add_argument('--model_cfg', type=str, default='prohmr/configs/prohmr.yaml', help='Path to config file. If not set use the default (prohmr/configs/prohmr.yaml)')
-# parser.add_argument('--dataset', type=str, default='ethfv_smpl', choices=['H36M-VAL-P2', '3DPW-TEST', 'MPI-INF-TEST'], help='Dataset to evaluate')
+
 parser.add_argument('--batch_size', type=int, default=50, help='Batch size for inference')
 parser.add_argument('--num_samples', type=int, default=1, help='Number of test samples to draw')
 parser.add_argument('--num_workers', type=int, default=4, help='Number of workers used for data loading')
@@ -116,9 +106,6 @@ model_cfg.TRAIN.NUM_TEST_SAMPLES = args.num_samples
 model_cfg.freeze()
 
 
-# Setup model
-# model = ProHMRRGBSmplx(cfg=model_cfg, device=device, with_focal_length=args.with_focal_length, with_bbox_info=args.with_bbox_info, with_cam_center=args.with_cam_center,
-                    #   with_vfov=args.with_vfov, with_joint_vis=args.with_joint_vis)
 model = ProHMRRGBSmplx(cfg=model_cfg, device=device, writer=None, logger=None,
                           with_focal_length=args.with_focal_length, with_bbox_info=args.with_bbox_info, with_cam_center=args.with_cam_center,
                           with_vfov=args.with_vfov, with_joint_vis=args.with_joint_vis)
@@ -284,124 +271,7 @@ for step, batch in enumerate(tqdm(dataloader)):
             print('V2V: ' + str(1000 * v2v[:step * args.batch_size].mean()))
             print('PA-V2V: ' + str(1000 * pa_v2v[:step * args.batch_size].mean()))
 
-        ######################## visualize 3d bodies and scene in the original physical camera
-        # if args.vis and step % args.vis_freq == 0:
-
-        #     save_root = args.output_vis_folder + '/rgb/'
-        #     os.makedirs(save_root) if not os.path.exists(save_root) else None
-        #     rgb_save_path = os.path.join(save_root, '{}_{}'.format(batch['imgname'][0].split('/')[-4], batch['imgname'][0].split('/')[-1].replace('jpg', 'png')))
-        #     curr_image = batch['imgname'][0]
-        #     curr_image = cv2.imread(curr_image)
-        #     cv2.imwrite(rgb_save_path, curr_image)
-
-        #     body = trimesh.Trimesh(gt_vertices[0].detach().cpu().numpy(), smpl_neutral.faces, process=False)
-        #     gt_body_mesh = pyrender.Mesh.from_trimesh(body, material=material)
-        #     scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0])
-        #     scene.add(camera, pose=camera_pose)
-        #     scene.add(light, pose=camera_pose)
-        #     scene.add(gt_body_mesh, 'mesh')
-        #     color, _ = r.render(scene, flags=pyrender.RenderFlags.RGBA)
-        #     color = color.astype(np.float32) / 255.0
-        #     alpha = 1.0  # set transparency in [0.0, 1.0]
-        #     color[:, :, -1] = color[:, :, -1] * alpha
-        #     color = pil_img.fromarray((color * 255).astype(np.uint8))
-        #     save_root = args.output_vis_folder + '/gt/'
-        #     os.makedirs(save_root) if not os.path.exists(save_root) else None
-        #     gt_save_path = os.path.join(save_root, '{}_{}'.format(batch['imgname'][0].split('/')[-4], batch['imgname'][0].split('/')[-1].replace('jpg', 'png')))
-        #     color.save(gt_save_path)
         
-        #     ####### render with error color map
-        #     error = np.linalg.norm(np.abs(gt_vertices_align[0].detach().cpu().numpy() - pred_vertices_mode_align[0].detach().cpu().numpy()), axis=-1)  # [10475]
-        #     error = error * 1000 / 120
-        #     error = (error * 255).astype(int)
-        #     error[error>255] = 255
-        #     error = color_map[error]  # in [0, 1]
-        #     body = trimesh.Trimesh(vertices=pred_vertices_full[0].detach().cpu().numpy(), vertex_colors=error, faces=smpl_neutral.faces, process=False)
-        #     body_mesh = pyrender.Mesh.from_trimesh(body)
-        #     scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0])
-        #     scene.add(camera, pose=camera_pose)
-        #     scene.add(light, pose=camera_pose)
-        #     scene.add(body_mesh, 'mesh')
-        #     color, _ = r.render(scene, flags=pyrender.RenderFlags.RGBA)
-        #     color = color.astype(np.float32) / 255.0
-        #     alpha = 1.0  # set transparency in [0.0, 1.0]
-        #     color[:, :, -1] = color[:, :, -1] * alpha
-        #     color = pil_img.fromarray((color * 255).astype(np.uint8))
-        #     save_root = args.output_vis_folder + '/pred/'
-        #     os.makedirs(save_root) if not os.path.exists(save_root) else None
-        #     pred_save_path = os.path.join(save_root, '{}_{}'.format(batch['imgname'][0].split('/')[-4], batch['imgname'][0].split('/')[-1].replace('jpg', 'png')))
-        #     color.save(pred_save_path)
-            
-        #     v2v_list[batch['imgname'][0].split('/')[-1]] = (v2v[step * args.batch_size], rgb_save_path, gt_save_path, pred_save_path)
-        
-
-        ####################### visualize 3d bodies with rotation
-        # if args.vis and step % args.vis_freq == 0:
-
-        #     save_root = args.output_vis_folder + '/rgb/'
-        #     os.makedirs(save_root) if not os.path.exists(save_root) else None
-        #     rgb_save_path = os.path.join(save_root, '{}_{}'.format(batch['imgname'][0].split('/')[-4], batch['imgname'][0].split('/')[-1].replace('jpg', 'png')))
-        #     curr_image = batch['imgname'][0]
-        #     curr_image = cv2.imread(curr_image)
-        #     cv2.imwrite(rgb_save_path, curr_image)
-
-        #     for rot_angle in range(0, 360, 1):
-        #         gt_vertices_align_rot = gt_vertices_align[0].detach().cpu().numpy().copy()
-        #         rot = trimesh.transformations.rotation_matrix(np.radians(rot_angle), [0, 1, 0])
-        #         gt_vertices_align_rot = np.dot(gt_vertices_align_rot, rot[:3, :3].T)
-        #         gt_vertices_rot = gt_vertices_align_rot + gt_pelvis[0].detach().cpu().numpy()
-        #         body = trimesh.Trimesh(gt_vertices_rot, smpl_neutral.faces, process=False)
-
-
-        #         gt_body_mesh = pyrender.Mesh.from_trimesh(body, material=material)
-        #         scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0])
-        #         scene.add(camera, pose=camera_pose)
-        #         scene.add(light, pose=camera_pose)
-        #         scene.add(gt_body_mesh, 'mesh')
-        #         color, _ = r.render(scene, flags=pyrender.RenderFlags.RGBA)
-        #         color = color.astype(np.float32) / 255.0
-        #         alpha = 1.0  # set transparency in [0.0, 1.0]
-        #         color[:, :, -1] = color[:, :, -1] * alpha
-        #         color = pil_img.fromarray((color * 255).astype(np.uint8))
-        #         save_root = args.output_vis_folder + '/gt/' + '{}_{}'.format(batch['imgname'][0].split('/')[-4], batch['imgname'][0].split('/')[-1].replace('.jpg', ''))
-        #         os.makedirs(save_root) if not os.path.exists(save_root) else None
-        #         # output with name 3 digits
-        #         out_angle = str(rot_angle).zfill(3)
-        #         gt_save_path = os.path.join(save_root, 'image-{}.png'.format(rot_angle))
-        #         color.save(gt_save_path)
-                
-        
-        #     ####### render with error color map
-        #     for rot_angle in range(0, 360, 1):
-        #         error = np.linalg.norm(np.abs(gt_vertices_align[0].detach().cpu().numpy() - pred_vertices_mode_align[0].detach().cpu().numpy()), axis=-1)  # [10475]
-        #         error = error * 1000 / 120
-        #         error = (error * 255).astype(int)
-        #         error[error>255] = 255
-        #         error = color_map[error]  # in [0, 1]
-
-        #         pred_vertices_align_rot = pred_vertices_mode_align[0].detach().cpu().numpy().copy()
-        #         rot = trimesh.transformations.rotation_matrix(np.radians(rot_angle), [0, 1, 0])
-        #         pred_vertices_align_rot = np.dot(pred_vertices_align_rot, rot[:3, :3].T)
-        #         pred_vertices_rot = pred_vertices_align_rot + gt_pelvis[0].detach().cpu().numpy()
-                
-        #         body = trimesh.Trimesh(vertices=pred_vertices_rot, vertex_colors=error, faces=smpl_neutral.faces, process=False)
-        #         body_mesh = pyrender.Mesh.from_trimesh(body)
-        #         scene = pyrender.Scene(bg_color=[0.0, 0.0, 0.0, 0.0])
-        #         scene.add(camera, pose=camera_pose)
-        #         scene.add(light, pose=camera_pose)
-        #         scene.add(body_mesh, 'mesh')
-        #         color, _ = r.render(scene, flags=pyrender.RenderFlags.RGBA)
-        #         color = color.astype(np.float32) / 255.0
-        #         alpha = 1.0  # set transparency in [0.0, 1.0]
-        #         color[:, :, -1] = color[:, :, -1] * alpha
-        #         color = pil_img.fromarray((color * 255).astype(np.uint8))
-        #         save_root = args.output_vis_folder + '/pred/' + '{}_{}'.format(batch['imgname'][0].split('/')[-4], batch['imgname'][0].split('/')[-1].replace('.jpg', ''))
-        #         os.makedirs(save_root) if not os.path.exists(save_root) else None
-        #         out_angle = str(rot_angle).zfill(3)
-        #         pred_save_path = os.path.join(save_root, 'image-{}.png'.format(rot_angle))
-        #         color.save(pred_save_path)
-            
-            # break
 
 print('*** Final Results ***')
 print('[cfg] err_multi_mode: ', args.err_multi_mode)
@@ -412,14 +282,6 @@ print('PA-MPJPE: ' + str(1000 * pa_mpjpe.mean()))
 print('G-V2V: ' + str(1000 * g_v2v.mean()))
 print('V2V: ' + str(1000 * v2v.mean()))
 print('PA-V2V: ' + str(1000 * pa_v2v.mean()))
-
-# name = '_'.join(args.checkpoint.split("/")[-2:])
-# save_path = "./eval_result/%s_all_loss.json"%name
-# print("save_path: ", save_path)
-# with open(save_path, 'w') as f:
-#     tmp = {'v2v': v2v.tolist(), 'img_name': img_name_list}
-#     json.dump(tmp, f, indent=4, sort_keys=True)
-
 
 
 

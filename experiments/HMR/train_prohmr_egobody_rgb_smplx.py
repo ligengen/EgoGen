@@ -1,11 +1,3 @@
-"""
-Script used to train ProHMR on egobody RGB dataset and generate smplx model.
-Example usage:
-python train_prohmr.py --root_dir=/path/to/experiment/folder
-
-Running the above will use the default config file to train ProHMR as in the paper.
-The code uses PyTorch Lightning for training.
-"""
 import os
 import argparse
 import torch
@@ -25,8 +17,6 @@ from prohmr.datasets.mocap_dataset import MoCapDataset
 
 from utils import *
 
-# python train_prohmr_egobody_rgb_smplx.py --data_source synthetic --train_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_rgb_new --val_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release --train_dataset_file /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_rgb_new/smplx_spin_holo_rgb_npz/egocapture_train_smplx.npz --val_dataset_file /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/smplx_spin_npz/egocapture_val_smplx.npz
-# python train_prohmr_egobody_rgb_smplx.py --load_pretrained True --checkpoint ./data/checkpoint/rgb/best_model.pt --data_source real --train_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release --val_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release --train_dataset_file /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/smplx_spin_npz/egocapture_train_smplx.npz --val_dataset_file /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/smplx_spin_npz/egocapture_val_smplx.npz
 
 parser = argparse.ArgumentParser(description='ProHMR training code')
 parser.add_argument('--gpu_id', type=int, default='0')
@@ -70,7 +60,6 @@ parser.add_argument('--is_aug', default='True', type=lambda x: x.lower() in ['tr
 
 args = parser.parse_args()
 
-# args.shuffle = False
 torch.cuda.set_device(args.gpu_id)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('gpu id:', torch.cuda.current_device())

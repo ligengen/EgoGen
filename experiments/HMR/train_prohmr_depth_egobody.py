@@ -1,11 +1,3 @@
-"""
-Script used to train ProHMR.
-Example usage:
-python train_prohmr.py --root_dir=/path/to/experiment/folder
-
-Running the above will use the default config file to train ProHMR as in the paper.
-The code uses PyTorch Lightning for training.
-"""
 import os
 import argparse
 import torch
@@ -22,8 +14,6 @@ from prohmr.datasets.image_dataset_depth_egobody import ImageDatasetDepthEgoBody
 from prohmr.datasets.mocap_dataset import MoCapDataset
 
 from utils import *
-# python train_prohmr_depth_egobody.py --data_source synthetic --train_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_depth_new_new/ --val_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release
-# python train_prohmr_depth_egobody.py --load_pretrained True --checkpoint ./data/checkpoint/depth/best_model.pt --data_source real --train_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release/ --val_dataset_root /vlg-nfs/scratch/xialyu/EgoGen/EgoGen/experiments/hmregogen/data/egobody_release
 
 parser = argparse.ArgumentParser(description='Training code for depth input')
 parser.add_argument('--gpu_id', type=int, default='0')
