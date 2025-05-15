@@ -6,7 +6,7 @@
     <img src="assets/logos.svg" alt="Logo" height="40">
 </p>
 
-### <p align="center">[ArXiv](https://arxiv.org/abs/2401.08739) | [Project Page](https://ego-gen.github.io/)
+### <p align="center">[ArXiv](https://arxiv.org/abs/2401.08739) | [Project Page](https://ego-gen.github.io/) | [Dataset](https://egogen.ethz.ch/)
 
 ### <p align="center"> CVPR 2024 (Oral)
 
@@ -28,7 +28,7 @@ We will release all code before the CVPR 2024 conference.
 - [x] Motion model training code (models for dynamic evaluations)
 - [x] Motion primitive C-VAE training code
 - [x] Egocentric human mesh recovery code (RGB/depth images as input)
-- [ ] EgoBody synthetic data (RGB/depth)
+- [x] EgoBody synthetic data (RGB/depth)
 - [x] EgoBody synthetic data generation script (incl. automated clothing simulation)
 - [x] EgoGen rendering pipeline code
 
