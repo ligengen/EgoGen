@@ -5,7 +5,7 @@
 <h3> CVPR 2024 (Oral) </h3>
 <h3>🏆 EgoVis Distinguished Paper Award</h3>
 
-*[Gen Li](https://vlg.inf.ethz.ch/team/Gen-Li.html), [Kaifeng Zhao](https://vlg.inf.ethz.ch/team/Kaifeng-Zhao.html), [Siwei Zhang](https://vlg.inf.ethz.ch/team/Siwei-Zhang.html), [Xiaozhong Lyu](https://vlg.inf.ethz.ch/team/Xiaozhong-Lyu.html), [Mihai Dusmanu](https://dusmanu.com/), [Yan Zhang](https://yz-cnsdqz.github.io/), [Marc Pollefeys](https://people.inf.ethz.ch/marc.pollefeys/), [Siyu Tang](https://vlg.inf.ethz.ch/team/Prof-Dr-Siyu-Tang.html)*
+*[Gen Li](https://ligengen.github.io), [Kaifeng Zhao](https://vlg.inf.ethz.ch/team/Kaifeng-Zhao.html), [Siwei Zhang](https://vlg.inf.ethz.ch/team/Siwei-Zhang.html), [Xiaozhong Lyu](https://vlg.inf.ethz.ch/team/Xiaozhong-Lyu.html), [Mihai Dusmanu](https://dusmanu.com/), [Yan Zhang](https://yz-cnsdqz.github.io/), [Marc Pollefeys](https://people.inf.ethz.ch/marc.pollefeys/), [Siyu Tang](https://vlg.inf.ethz.ch/team/Prof-Dr-Siyu-Tang.html)*
 
 <br>
 
