@@ -8,7 +8,7 @@
 
 ### <p align="center">[ArXiv](https://arxiv.org/abs/2401.08739) | [Project Page](https://ego-gen.github.io/) | [Dataset](https://egogen.ethz.ch/)
 
-### <p align="center"> CVPR 2024 (Oral)
+### <p align="center"> CVPR 2024 (Oral) 🏆 EgoVis Distinguished Paper Award
 
 <p align="center">
   <img width="100%" src="assets/teaser.jpg"/>
