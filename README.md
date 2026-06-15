@@ -1,14 +1,23 @@
-# <p align="center">EgoGen: An Egocentric Synthetic Data Generator </p>
+<div align="center">
 
-####  <p align="center"> [Gen Li](https://vlg.inf.ethz.ch/team/Gen-Li.html), [Kaifeng Zhao](https://vlg.inf.ethz.ch/team/Kaifeng-Zhao.html), [Siwei Zhang](https://vlg.inf.ethz.ch/team/Siwei-Zhang.html), [Xiaozhong Lyu](https://vlg.inf.ethz.ch/team/Xiaozhong-Lyu.html), [Mihai Dusmanu](https://dusmanu.com/), [Yan Zhang](https://yz-cnsdqz.github.io/), [Marc Pollefeys](https://people.inf.ethz.ch/marc.pollefeys/), [Siyu Tang](https://vlg.inf.ethz.ch/team/Prof-Dr-Siyu-Tang.html)</p>
+<h1>EgoGen: An Egocentric Synthetic Data Generator</h1>
 
-<p align="center">
-    <img src="assets/logos.svg" alt="Logo" height="40">
-</p>
+<h3> CVPR 2024 (Oral) </h3>
+<h3>🏆 EgoVis Distinguished Paper Award</h3>
 
-### <p align="center">[ArXiv](https://arxiv.org/abs/2401.08739) | [Project Page](https://ego-gen.github.io/) | [Dataset](https://egogen.ethz.ch/)
+*[Gen Li](https://vlg.inf.ethz.ch/team/Gen-Li.html), [Kaifeng Zhao](https://vlg.inf.ethz.ch/team/Kaifeng-Zhao.html), [Siwei Zhang](https://vlg.inf.ethz.ch/team/Siwei-Zhang.html), [Xiaozhong Lyu](https://vlg.inf.ethz.ch/team/Xiaozhong-Lyu.html), [Mihai Dusmanu](https://dusmanu.com/), [Yan Zhang](https://yz-cnsdqz.github.io/), [Marc Pollefeys](https://people.inf.ethz.ch/marc.pollefeys/), [Siyu Tang](https://vlg.inf.ethz.ch/team/Prof-Dr-Siyu-Tang.html)*
 
-### <p align="center"> CVPR 2024 (Oral), 🏆 EgoVis Distinguished Paper Award
+<br>
+
+<img src="assets/logos.svg" alt="Logo" height="40">
+
+<br>
+
+[`ArXiv`](https://arxiv.org/abs/2401.08739) | [`Project Page`](https://ego-gen.github.io/) | [`Dataset`](https://egogen.ethz.ch/)
+
+</div>
+
+<br>
 
 <p align="center">
   <img width="100%" src="assets/teaser.jpg"/>
